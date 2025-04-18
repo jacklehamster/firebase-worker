@@ -1,5 +1,7 @@
 import { FireStorage } from "@dobuki/firebase-store";
 
+let storage: FireStorage | null = null;
+
 export default {
   async fetch(request: Request, env: any): Promise<Response> {
     const url = new URL(request.url);
@@ -8,8 +10,6 @@ export default {
     }
 
     try {
-      let storage: FireStorage | null = null;
-
       if (!storage) {
         console.log("INITIALIZING Firebase");
         storage = new FireStorage({
@@ -18,9 +18,27 @@ export default {
           clientEmail: env.FIREBASE_CLIENT_EMAIL,
         });
       }
+
+      if (url.pathname === "/") {
+        const list = await storage.listKeys();
+        return new Response(JSON.stringify(list), {
+          headers: {
+            "Content-Type": "application/json"
+          },
+        });
+      }
       const key = url.pathname.substring(1);
       const value = url.searchParams.get("value");
-      if (value !== null) {
+      const del = url.searchParams.get("delete");
+      if (del) {
+        await storage.setKeyValue(key, undefined);
+        const list = await storage.listKeys();
+        return new Response(JSON.stringify(list), {
+          headers: {
+            "Content-Type": "application/json"
+          },
+        });
+      } else if (value !== null) {
         await storage.setKeyValue(key, { value });
         return new Response(JSON.stringify({
           key,
