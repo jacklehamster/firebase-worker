@@ -8,8 +8,14 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400", // Cache preflight response for 24 hours
 };
 
+interface Env {
+  FIREBASE_PRIVATE_KEY: string;
+  FIREBASE_PROJECT_ID: string;
+  FIREBASE_CLIENT_EMAIL: string;
+}
+
 export default {
-  async fetch(request: Request, env: any): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     // Handle CORS preflight requests
     if (request.method === "OPTIONS") {
       return new Response(null, {
