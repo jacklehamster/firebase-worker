@@ -1,6 +1,4 @@
-import { FireStorage } from "@dobuki/firebase-store";
-
-let storage: FireStorage | null = null;
+import { handleServerResponse, ResponseData } from "@dobuki/firebase-store";
 
 // Define CORS headers
 const corsHeaders = {
@@ -26,64 +24,19 @@ export default {
     }
 
     try {
-      if (!storage) {
-        console.log("INITIALIZING Firebase");
-        storage = new FireStorage({
-          privateKey: env.FIREBASE_PRIVATE_KEY,
-          projectId: env.FIREBASE_PROJECT_ID,
-          clientEmail: env.FIREBASE_CLIENT_EMAIL,
-        });
-      }
-
-      // Merge CORS headers with content-type headers
-      const responseHeaders = {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      };
-
-      if (url.pathname === "/") {
-        const list = await storage.listKeys();
-        return new Response(JSON.stringify(list), {
-          headers: responseHeaders,
-        });
-      }
-
-      const key = url.pathname.substring(1);
-      const value = url.searchParams.get("value");
-      const del = url.searchParams.get("delete");
-
-      if (del) {
-        await storage.setKeyValue(key, undefined);
-        const list = await storage.listKeys();
-        return new Response(JSON.stringify(list), {
-          headers: responseHeaders,
-        });
-      } else if (value !== null) {
-        await storage.setKeyValue(key, { value });
-        return new Response(
-          JSON.stringify({
-            key,
-            value,
-          }),
-          {
-            headers: responseHeaders,
-          }
-        );
-      } else {
-        console.log("Getting value");
-        const val = await storage.getValue(key);
-        return new Response(
-          JSON.stringify({
-            key,
-            value: val?.value,
-          }),
-          {
-            headers: responseHeaders,
-          }
-        );
-      }
+      const responseData: ResponseData = await handleServerResponse(request.url, {
+        privateKey: env.FIREBASE_PRIVATE_KEY,
+        projectId: env.FIREBASE_PROJECT_ID,
+        clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      });
+      return new Response(JSON.stringify(responseData), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
     } catch (error: any) {
-      console.log(error);
+      console.error(error);
       // Include CORS headers in error responses
       return new Response(
         JSON.stringify({ error: error.message || "Internal Server Error" }),
